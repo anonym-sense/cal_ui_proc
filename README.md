@@ -28,14 +28,21 @@ one self-contained file. No libraries, no build step, no assets: open
   sun and moon, stars, lit windows and lanterns all follow the hour.
 - **Seasons**: spring blossom, summer green, autumn colour, bare winter
   branches, and a snowline that moves with the season.
-- **Water**: a waterfall drops from a bluff and feeds a river that cascades over
+- **Water**: a stream gathers in a high valley, reaches a notch between two
+  shoulders and drops as a waterfall, feeding a river that cascades over
   every nearer ridge and runs under a footbridge on the road. The flow follows the
   season (spring snowmelt, a summer trickle, frozen in winter) and runs at its
   fullest in rain.
 - **Rain days**: decided once per calendar day, likeliest in summer; rain
+  brings heavy cloud, umbrellas for most walkers and a dash for those without;
+  it also
   greys the sky and swells the river.
-- **Dogs** trot behind some of the walkers, and lamp posts line the lanes,
+- **Dogs** trot behind some of the walkers, cyclists ride the road, and lamp
+  posts line the lanes,
   the road and the bridge.
+- **On the mountains**: roped teams climb to the summits and plant a flag.
+- **In the sky**: shooting stars on clear summer nights when the fireworks are
+  off, and Santa on snowy nights when the Christmas lights are on.
 - **Snow, Christmas lights and night fireworks**, each optional.
 
 ## Controls

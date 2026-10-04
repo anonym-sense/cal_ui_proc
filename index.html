@@ -182,7 +182,7 @@ const qs = new URLSearchParams(location.search);
 let seed = qs.has('seed') ? +qs.get('seed') | 0 : (Math.random() * 1e9) | 0;
 let override = qs.has('t') ? clamp(+qs.get('t'), 0, 24) % 24 : null;   // null = live clock
 let cycling = false, fireworksOn = true;
-let W, H, u, layers, stars, clouds, birds, city, river;
+let W, H, u, layers, stars, clouds, storm, birds, city, river, routes = [];
 const fw = { rockets: [], sparks: [], flashes: [], next: .5 };
 const N_LAYERS = 6, CITY_LAYER = 3;
 const NIB = [Math.cos(40 * Math.PI / 180), Math.sin(40 * Math.PI / 180)];  // broad-nib pen angle
@@ -290,8 +290,11 @@ function build() {
       const ax = Math.abs(x - city.cx);
       if (i === CITY_LAYER) y = lerp(y, L.base - 30 * u, smooth(1, 0, ax / (city.cw * .9)) * .75);
       if (i === CITY_LAYER + 1) y = lerp(y, L.base + L.amp * .3, smooth(1, 0, ax / (city.cw * .75)));
-      // a bluff for the waterfall to drop from, then a saddle in each nearer ridge for the river to run through
-      if (i === 2) y = lerp(y, Math.min(y, L.base - L.amp * .9), smooth(1, 0, Math.abs(x - river.x0) / (230 * u)));
+      // The stream gathers in a high valley on the second ridge, reaches the third through a notch between
+      // two shoulders and falls from its lip; every nearer ridge then has a saddle for the river.
+      const rx = Math.abs(x - river.x0);
+      if (i === 1) y = lerp(y, L.base - L.amp * .6, smooth(1, 0, rx / (130 * u))) + 14 * u * smooth(1, 0, rx / (34 * u));
+      if (i === 2) y = lerp(y, Math.min(y, L.base - L.amp * .9), smooth(1, 0, rx / (230 * u))) + 36 * u * smooth(1, 0, rx / (44 * u));
       if (i >= 3) y = lerp(y, Math.max(y, L.base + L.amp * .25), smooth(1, 0, Math.abs(x - riverX(L.base)) / (110 * u)));
       L.ys[x] = y; if (y < top) top = y;
     }
@@ -302,7 +305,7 @@ function build() {
   const person = (L, x, yf, doors) => ({
     type: 'person', x, yf, doors, tx: x, wait: rng() * 4, moving: false, dir: rng() < .5 ? -1 : 1,
     speed: L.s * lerp(5, 9, rng()), col: pick(CLOTHES), lantern: rng() < .6, size: lerp(.9, 1.15, rng()),
-    dog: rng() < .32 ? pick(DOGS) : null,
+    dog: rng() < .32 ? pick(DOGS) : null, runner: rng() < .35, brolly: pick(CLOTHES),
   });
   // hill-station cottage: coloured walls under a painted tin roof
   const house = (x, y, w, h, o = {}) => {
@@ -365,7 +368,8 @@ function build() {
       L.objs.push({ type: 'flags', y: Math.max(b1, b2), poles: [[x1, b1, b1 - 30 * s], [x2, b2, b2 - 30 * s]], strings: [[x1, b1 - 30 * s, x2, b2 - 30 * s]], r: rng() });
     };
 
-    /* --- water: the fall drops down the bluff on the third ridge; the river then runs through every nearer one --- */
+    /* --- water: a stream down the high faces, the fall from the notch on the third ridge, then the river through every nearer one --- */
+    if (i < 2) { L.streamY = yAt(L, river.x0) + (i ? 2 : 16) * u; zones.push([river.x0 - 16 * u, river.x0 + 16 * u]); }
     if (i === 2) {
       const x = river.x0, y1 = yAt(L, x) + 2, y2 = yAt(layers[3], x) + 24 * u;
       const rock = sd => {                                       // a dark brushed cleft either side of the water
@@ -471,6 +475,10 @@ function build() {
         const n = 1 + (rng() * 3 | 0), dir = rng() < .5 ? -1 : 1, speed = s * lerp(6, 9, rng()), x0 = rng() * W;
         for (let k = 0; k < n; k++) L.people.push(Object.assign(person(L, x0 - dir * k * 7 * s, roadY, null), { dir, speed, moving: true }));
       }
+      for (let g = 0; g < 3; g++) {                              // and a few cyclists, in the nearer lane
+        L.people.push(Object.assign(person(L, rng() * W, x => roadY(x) + 2.5 * s, null),
+          { type: 'bike', dir: rng() < .5 ? -1 : 1, speed: s * lerp(24, 36, rng()), moving: true, dog: null, runner: false, frame: pick(ROOFS) }));
+      }
     }
 
     /* --- forest: conifers hold the high and steep ground, aspens stand in groves on the easy
@@ -502,12 +510,18 @@ function build() {
     L.objs.sort((a, b) => a.y - b.y);
   }
   buildCaps();
+  buildRoutes(rng);
 
   stars = Array.from({ length: 260 }, () => ({ x: rng(), y: rng() * .75, r: lerp(.5, 1.6, rng() * rng()), ph: rng() * 6.28, sp: lerp(.6, 2.4, rng()) }));
   clouds = Array.from({ length: 7 }, () => {
     const n = 4 + (rng() * 4 | 0), blobs = [];
     for (let k = 0; k < n; k++) blobs.push({ dx: (k - n / 2) * 26 + rng() * 14, dy: -rng() * 12, r: lerp(16, 34, rng()) * (1 - Math.abs(k - (n - 1) / 2) / n) });
     return { x: rng() * 1.4 - .2, y: lerp(.06, .36, rng()), sc: lerp(.7, 1.7, rng()), sp: lerp(.002, .006, rng()), blobs };
+  });
+  storm = Array.from({ length: 15 }, (_, q) => {             // the overcast that rolls in with rain or snow
+    const n = 6 + (rng() * 4 | 0), blobs = [];
+    for (let k = 0; k < n; k++) blobs.push({ dx: (k - n / 2) * 30 + rng() * 16, dy: -rng() * 16, r: lerp(26, 46, rng()) * (1 - Math.abs(k - (n - 1) / 2) / n * .7) });
+    return { x: q / 15 * 1.6 + rng() * .08, y: lerp(.0, .3, rng()), sc: lerp(1.5, 2.8, rng()), sp: lerp(.004, .009, rng()), blobs };
   });
   birds = Array.from({ length: 6 }, () => ({ x: rng(), y: lerp(.1, .4, rng()), sp: lerp(.012, .025, rng()), ph: rng() * 6.28, sz: lerp(.7, 1.3, rng()) }));
   const dense = clamp(W * H / 1.12e6, .3, 1);              // fewer particles on small screens
@@ -601,6 +615,10 @@ function drawSky(P, t, time) {
     for (const b of c.blobs) { ctx.moveTo(cx + (b.dx + b.r * 1.25) * k, cy + b.dy * k); ctx.ellipse(cx + b.dx * k, cy + b.dy * k, b.r * k * 1.25, b.r * k * .62, 0, 0, 6.283); }
     ctx.fill();
   }
+
+  drawStorm(P, time);
+  drawShootingStars();
+  drawSanta(time);
 
   if (P.light > .45) {                                    // birds, drawn as two quick pen flicks
     ctx.strokeStyle = css(P.ink, .7 * smooth(.45, .7, P.light)); ctx.lineCap = 'round';
@@ -795,7 +813,8 @@ function drawTree(o, L, shade, ink, P, time) {
 
 function drawPerson(p, L, shade, ink, P, time) {
   const s = L.s * p.size * .58, x = p.x, h = 20 * s;
-  const ph = p.x / (3 * s), sw = p.moving ? Math.sin(ph) : 0;
+  const running = p.runner ? P.wet : 0, brolly = p.runner ? 0 : smooth(.2, .5, P.wet);
+  const ph = p.x / ((3 + 2.5 * running) * s), sw = p.moving ? Math.sin(ph) * (1 + .5 * running) : 0;
   const y = p.y - (p.moving ? Math.abs(Math.cos(ph)) * .9 * s : 0);
   ctx.lineCap = ctx.lineJoin = 'round';
   ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.9, 1.8 * s);
@@ -815,6 +834,15 @@ function drawPerson(p, L, shade, ink, P, time) {
   ctx.beginPath(); ctx.arc(x, y - h * .9, 2.7 * s, 0, 6.283); ctx.fill();
   ctx.fillStyle = shade(HAIR);
   ctx.beginPath(); ctx.arc(x - p.dir * .5 * s, y - h * .92, 2.8 * s, Math.PI * .95, Math.PI * 2.05); ctx.fill();
+  if (brolly > 0) {                                        // umbrella up
+    const ux = x + p.dir * 1.2 * s, uy = y - h * 1.22;
+    ctx.globalAlpha = brolly;
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.6, .9 * s);
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ux, uy); ctx.stroke();
+    ctx.fillStyle = shade(p.brolly);
+    ctx.beginPath(); ctx.arc(ux, uy, 7 * s, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   if (p.lantern && P.light < .42) {
     ctx.fillStyle = css(WARM); ctx.beginPath(); ctx.arc(hx, hy + 2 * s, 1.5 * s, 0, 6.283); ctx.fill();
     lampGlow(hx, hy + 2 * s, 16 * s, .7 * smooth(.42, .25, P.light));
@@ -855,6 +883,53 @@ function drawBridge(o, L, shade, ink) {
   for (let x = a; x <= b; x += 4 * s) x === a ? ctx.moveTo(x, o.roadY(x) - 10.5 * s) : ctx.lineTo(x, o.roadY(x) - 10.5 * s);
   for (let x = a; x <= b; x += 7 * s) { ctx.moveTo(x, o.roadY(x) - 4.5 * s); ctx.lineTo(x, o.roadY(x) - 10.5 * s); }
   ctx.stroke();
+}
+
+// A cyclist on the road: spoked wheels that turn with the distance covered,
+// a coloured frame, a leaning rider, and a headlight after dark.
+function drawBike(p, L, shade, ink, P) {
+  const s = L.s * p.size * .58, d = p.dir, x = p.x, y = p.y, r = 3.5 * s, a = p.x / r * d;
+  const X = v => x + d * v * s, Y = v => y - v * s;
+  ctx.lineCap = ctx.lineJoin = 'round';
+  ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.7, .9 * s);
+  ctx.beginPath();
+  for (const hx of [-4.8, 4.8]) {
+    ctx.moveTo(X(hx) + r, Y(3.5)); ctx.arc(X(hx), Y(3.5), r, 0, 6.283);
+    for (let q = 0; q < 2; q++) { const c = Math.cos(a + q * 1.571) * r, sn = Math.sin(a + q * 1.571) * r; ctx.moveTo(X(hx) - c, Y(3.5) - sn); ctx.lineTo(X(hx) + c, Y(3.5) + sn); }
+  }
+  ctx.stroke();
+  ctx.strokeStyle = shade(p.frame); ctx.lineWidth = Math.max(.8, 1.2 * s);                  // frame
+  ctx.beginPath();
+  ctx.moveTo(X(-4.8), Y(3.5)); ctx.lineTo(X(-.3), Y(3.5)); ctx.lineTo(X(-1.8), Y(8.6)); ctx.closePath();
+  ctx.moveTo(X(-.3), Y(3.5)); ctx.lineTo(X(3.6), Y(8.8)); ctx.lineTo(X(-1.8), Y(8.6));
+  ctx.moveTo(X(4.8), Y(3.5)); ctx.lineTo(X(3.4), Y(10.4)); ctx.lineTo(X(4.6), Y(10.8));
+  ctx.stroke();
+  const px = X(-.3) + Math.cos(a) * 1.7 * s, py = Y(3.5) + Math.sin(a) * 1.7 * s;           // pedalling leg
+  ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.8, 1.5 * s);
+  ctx.beginPath(); ctx.moveTo(X(-1.6), Y(9.4)); ctx.lineTo(X(.9), Y(6.6)); ctx.lineTo(px, py); ctx.stroke();
+  ctx.strokeStyle = shade(p.col); ctx.lineWidth = Math.max(1.2, 3.2 * s);                   // rider, leaning in
+  ctx.beginPath(); ctx.moveTo(X(-1.6), Y(9.8)); ctx.lineTo(X(1.6), Y(14)); ctx.stroke();
+  ctx.lineWidth = Math.max(.7, 1.3 * s);
+  ctx.beginPath(); ctx.moveTo(X(1.4), Y(13.4)); ctx.lineTo(X(4.2), Y(10.8)); ctx.stroke();
+  ctx.fillStyle = shade(SKIN); ctx.beginPath(); ctx.arc(X(2.6), Y(16.2), 2.3 * s, 0, 6.283); ctx.fill();
+  ctx.fillStyle = shade(HAIR); ctx.beginPath(); ctx.arc(X(2.3), Y(16.5), 2.4 * s, Math.PI * .95, Math.PI * 2.05); ctx.fill();
+  if (P.lit > .15) { ctx.fillStyle = css(WARM); ctx.beginPath(); ctx.arc(X(5), Y(10.2), 1.1 * s, 0, 6.283); ctx.fill(); lampGlow(X(7), Y(9.5), 14 * s, .7 * P.lit); }
+}
+
+// The stream above the fall: a white thread down the high faces. On the farthest
+// range it fades in below the snow rather than starting at a line.
+function drawStream(L, P) {
+  const far = L.i === 0, k = clamp(flow / FLOOD, 0, 1), w = u * (far ? 2.2 : 3.8) * (.5 + .5 * k);
+  const y1 = L.streamY, y2 = y1 + 150 * u, amp = (far ? 7 : 3.5) * u;
+  const xf = y => river.x0 + Math.sin((y - y1) / (24 * u) + river.ph + L.i * 2) * amp * Math.min(1, (y - y1) / (30 * u));
+  const white = mix(mix(P.snow, WHITE, .5 * P.light), [150, 196, 232].map(v => v * (.35 + .65 * P.light)), .7 * frozen);
+  ctx.beginPath();
+  for (let y = y1; y <= y2; y += 5) y === y1 ? ctx.moveTo(xf(y) - w / 2, y) : ctx.lineTo(xf(y) - w / 2 * (1 + (y - y1) / (y2 - y1)), y);
+  for (let y = y2; y >= y1; y -= 5) ctx.lineTo(xf(y) + w / 2 * (1 + (y - y1) / (y2 - y1)), y);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, y1, 0, y1 + 46 * u);
+  g.addColorStop(0, css(white, far ? 0 : .9)); g.addColorStop(1, css(white, .9));
+  ctx.fillStyle = g; ctx.fill();
 }
 
 /* ---------- fireworks ---------- */
@@ -923,6 +998,7 @@ function applySeason(P) {
   }
   P.snow = mix(mix(P.far, WHITE, .3 + .62 * P.light), P.haze, .1);
   P.cover = cover; P.wet = wet;
+  P.stars *= 1 - .9 * Math.max(wet, fall * .6);            // cloud hides the stars
   P.sun = 1 - Math.max(.85 * wet, .5 * fall);              // the sun behind cloud
   P.grey = mix(P.haze, [150, 158, 174].map(v => v * (.25 + .75 * P.light)), .65);
   const overcast = Math.max(fall * .45, wet * .7);         // snow and rain clouds grey the sky
@@ -1046,6 +1122,160 @@ function drawRiver(L, P, time, inkC) {
   }
 }
 
+/* ---------- sky visitors: storm cloud, shooting stars, Santa ---------- */
+const shoot = { list: [], next: 2 }, santa = { t: -1, next: 5, dir: 1, y: 0 };
+
+function stepSky(dt, P) {
+  // shooting stars: clear summer nights with the fireworks switched off
+  if (P.season === 'summer' && P.night > .6 && wet < .05 && fall < .05 && !fireworksOn) {
+    shoot.next -= dt;
+    if (shoot.next <= 0) {
+      const d = Math.random() < .5 ? -1 : 1, v = lerp(520, 820, Math.random()) * u;
+      shoot.list.push({ x: W * lerp(.1, .9, Math.random()), y: H * lerp(.02, .3, Math.random()), vx: d * v, vy: v * lerp(.25, .5, Math.random()), life: 0, max: lerp(.8, 1.3, Math.random()) });
+      shoot.next = lerp(1.5, 7, Math.random());
+    }
+  }
+  for (const s of shoot.list) { s.x += s.vx * dt; s.y += s.vy * dt; s.life += dt; }
+  shoot.list = shoot.list.filter(s => s.life < s.max);
+
+  // Santa: a snowy night with the Christmas lights on
+  if (santa.t >= 0) { santa.t += dt / 17; if (santa.t > 1) { santa.t = -1; santa.next = lerp(10, 26, Math.random()); } }
+  else if (snowOn && xmasOn && P.night > .6) {
+    santa.next -= dt;
+    if (santa.next <= 0) { santa.t = 0; santa.dir = Math.random() < .5 ? -1 : 1; santa.y = H * lerp(.1, .22, Math.random()); }
+  }
+}
+
+function drawStorm(P, time) {
+  const oc = Math.max(P.wet, fall * .6);
+  if (oc <= 0) return;
+  ctx.fillStyle = css(mix(P.grey, P.ink, .25), .78 * oc);
+  for (const c of storm) {
+    const cx = ((c.x + time * c.sp) % 1.6 + 1.6) % 1.6 * W - .3 * W, cy = c.y * H, k = c.sc * u;
+    ctx.beginPath();
+    for (const b of c.blobs) { ctx.moveTo(cx + (b.dx + b.r * 1.25) * k, cy + b.dy * k); ctx.ellipse(cx + b.dx * k, cy + b.dy * k, b.r * k * 1.25, b.r * k * .62, 0, 0, 6.283); }
+    ctx.fill();
+  }
+}
+
+function drawShootingStars() {
+  if (!shoot.list.length) return;
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineWidth = 2.2 * u;
+  for (const s of shoot.list) {
+    const a = Math.sin(Math.PI * s.life / s.max), tail = .2;
+    const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * tail, s.y - s.vy * tail);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(160,190,255,0)');
+    ctx.strokeStyle = g;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * tail, s.y - s.vy * tail); ctx.stroke();
+    ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.beginPath(); ctx.arc(s.x, s.y, 1.5 * u, 0, 6.283); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// Four reindeer, a red sleigh and a trail of gold dust, drawn facing +x and mirrored for direction.
+function drawSanta(time) {
+  if (santa.t < 0) return;
+  const t = santa.t, k = u * 1.5;
+  const x = santa.dir > 0 ? lerp(-170 * k, W + 170 * k, t) : lerp(W + 170 * k, -170 * k, t);
+  const y = santa.y + Math.sin(t * 9) * 16 * u - Math.sin(Math.PI * t) * 24 * u;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(santa.dir * (Math.cos(t * 9) * .08 - Math.cos(Math.PI * t) * .06)); ctx.scale(santa.dir * k, k);
+  ctx.lineCap = ctx.lineJoin = 'round';
+  ctx.globalCompositeOperation = 'lighter';                  // gold dust
+  for (let j = 0; j < 16; j++) {
+    const tw = .5 + .5 * Math.sin(time * 7 + j * 2.1);
+    ctx.fillStyle = `rgba(255,214,110,${(1 - j / 16) * .8 * tw})`;
+    ctx.beginPath(); ctx.arc(-20 - j * 8, 3 + Math.sin(j * 1.7 + time * 2.5) * 4, 1.6 - j * .05, 0, 6.283); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = .7;           // reins
+  ctx.beginPath(); ctx.moveTo(4, -8); ctx.lineTo(26, -5); ctx.lineTo(82, -5); ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const rx = 28 + i * 17, ry = -4 + Math.sin(time * 8 + i * 1.3) * 1.6, g = Math.sin(time * 11 + i * 1.3);
+    ctx.strokeStyle = '#4a2f1c'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(rx - 4, ry + 2); ctx.lineTo(rx - 5 - g * 3, ry + 8); ctx.moveTo(rx - 2.5, ry + 2); ctx.lineTo(rx - 2 + g * 3, ry + 8);
+    ctx.moveTo(rx + 3, ry + 2); ctx.lineTo(rx + 3 + g * 3, ry + 8); ctx.moveTo(rx + 4.5, ry + 2); ctx.lineTo(rx + 6 - g * 3, ry + 8);
+    ctx.moveTo(rx + 7.5, ry - 6); ctx.lineTo(rx + 6.5, ry - 10); ctx.lineTo(rx + 5, ry - 11); ctx.moveTo(rx + 6.5, ry - 10); ctx.lineTo(rx + 8.5, ry - 11.5);   // antlers
+    ctx.stroke();
+    ctx.fillStyle = '#8a5a34';
+    ctx.beginPath(); ctx.ellipse(rx, ry, 6, 2.8, 0, 0, 6.283); ctx.moveTo(rx + 10, ry - 4.5); ctx.arc(rx + 7.6, ry - 4.5, 2.3, 0, 6.283); ctx.fill();
+    if (i === 3) { ctx.fillStyle = '#ff4030'; ctx.beginPath(); ctx.arc(rx + 10, ry - 4.3, 1.1, 0, 6.283); ctx.fill(); }
+  }
+  ctx.fillStyle = '#6b4a2a'; ctx.beginPath(); ctx.arc(-9, -9, 5.5, 0, 6.283); ctx.fill();            // sack
+  ctx.fillStyle = '#c62828';                                                                         // sleigh
+  ctx.beginPath(); ctx.moveTo(-15, -8); ctx.lineTo(-15, 2); ctx.lineTo(9, 2); ctx.quadraticCurveTo(15, 1, 14, -8); ctx.lineTo(10, -8); ctx.lineTo(8, -3); ctx.lineTo(-10, -3); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#eab92d'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(-17, 5); ctx.lineTo(10, 5); ctx.quadraticCurveTo(16, 5, 16, 0); ctx.moveTo(-9, 2); ctx.lineTo(-9, 5); ctx.moveTo(5, 2); ctx.lineTo(5, 5); ctx.stroke();
+  ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(0, -7.5, 4.6, 0, 6.283); ctx.fill();           // Santa
+  ctx.fillStyle = '#f1c9a5'; ctx.beginPath(); ctx.arc(1.5, -13.5, 2.5, 0, 6.283); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(2.6, -12, 1.9, 0, 6.283); ctx.arc(-3.6, -17.4, 1.2, 0, 6.283); ctx.fill();
+  ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.moveTo(-1, -14.5); ctx.lineTo(3.8, -15.2); ctx.lineTo(-3.4, -17.6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- mountain folk: roped climbers ---------- */
+// A route runs from a summit down one flank of its ridge to the first hollow.
+function buildRoutes(rng) {
+  routes = [];
+  for (const li of [0, 1, 2]) {
+    const L = layers[li], win = Math.round(28 * u), cs = u * lerp(.6, .85, li / 2);
+    let n = 0;
+    for (let x = win; x < W - win && n < 3; x += 4) {
+      let peak = true;
+      for (let k = -win; k <= win && peak; k += 4) if (L.ys[x + k] < L.ys[x]) peak = false;
+      if (!peak || (li === 2 && Math.abs(x - river.x0) < 250 * u)) continue;
+      for (const dir of rng() < .5 ? [1, -1] : [-1, 1]) {
+        let xb = x;
+        while (xb + dir * 4 > 8 && xb + dir * 4 < W - 8 && L.ys[xb + dir * 4] >= L.ys[xb] - 1.5 && Math.abs(xb - x) < 300 * u) xb += dir * 4;
+        if (L.ys[xb] - L.ys[x] < 38 * u || Math.abs(xb - x) < 50 * u) continue;
+        const cols = [0, 1, 2].map(() => CLOTHES[(rng() * CLOTHES.length) | 0]);
+        routes.push({
+          L, xp: x, xb, dir, cs, cols, x: xb, phase: 'up', wait: rng() * 3,
+        });
+        n++; x += win * 2; break;
+      }
+    }
+  }
+}
+function stepFolk(dt) {
+  for (const r of routes) {
+    // climbers: up to the summit, a rest by the flag, and back down
+    if (r.wait > 0) r.wait -= dt;
+    else if (r.phase === 'up') { r.x -= r.dir * 4.5 * u * dt; if ((r.x - r.xp) * r.dir <= 0) { r.x = r.xp; r.phase = 'down'; r.wait = 7; } }
+    else { r.x += r.dir * 7 * u * dt; if ((r.x - r.xb) * r.dir >= 0) { r.x = r.xb; r.phase = 'up'; r.wait = 4; } }
+  }
+}
+function drawFolk(L, P, shade, ink) {
+  for (const r of routes) {
+    if (r.L !== L) continue;
+    const cs = r.cs;
+    ctx.lineCap = ctx.lineJoin = 'round';
+    const f = r.phase === 'up' ? -r.dir : r.dir, lo = Math.min(r.xp, r.xb), hi = Math.max(r.xp, r.xb);
+    const team = [0, 1, 2].map(j => { const x = clamp(r.x - f * j * 8 * cs, lo, hi); return [x, yAt(L, x) + 1.5 * cs]; });
+    ctx.strokeStyle = css(mix(P.ink, WHITE, .25), .6); ctx.lineWidth = Math.max(.5, .6 * cs);       // the rope
+    ctx.beginPath(); team.forEach(([x, y], j) => j ? ctx.lineTo(x, y - 5 * cs) : ctx.moveTo(x, y - 5 * cs)); ctx.stroke();
+    if (r.phase === 'down') {                                    // they left a flag on the summit
+      const py = yAt(L, r.xp);
+      ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.6, .8 * cs);
+      ctx.beginPath(); ctx.moveTo(r.xp, py + cs); ctx.lineTo(r.xp, py - 9 * cs); ctx.stroke();
+      ctx.fillStyle = shade(FLAGS[2]); ctx.beginPath(); ctx.moveTo(r.xp, py - 9 * cs); ctx.lineTo(r.xp + 5 * cs, py - 7.5 * cs); ctx.lineTo(r.xp, py - 6 * cs); ctx.closePath(); ctx.fill();
+    }
+    team.forEach(([x, y], j) => {
+      const moving = r.wait <= 0, sw = moving ? Math.sin(x / (2.2 * cs) + j) : 0;
+      ctx.strokeStyle = ink; ctx.lineWidth = Math.max(.7, cs);
+      ctx.beginPath();
+      ctx.moveTo(x, y - 4.5 * cs); ctx.lineTo(x + sw * 2 * cs, y); ctx.moveTo(x, y - 4.5 * cs); ctx.lineTo(x - sw * 2 * cs, y);
+      ctx.moveTo(x + f * 1.5 * cs, y - 7 * cs); ctx.lineTo(x + f * 4 * cs, y - 1.5 * cs);             // walking pole
+      ctx.stroke();
+      ctx.strokeStyle = shade(r.cols[j]); ctx.lineWidth = 3 * cs;
+      ctx.beginPath(); ctx.moveTo(x, y - 4.8 * cs); ctx.lineTo(x + f * 1.2 * cs, y - 8.6 * cs); ctx.stroke();
+      ctx.fillStyle = shade(WOOD); ctx.beginPath(); ctx.arc(x - f * 1.6 * cs, y - 7 * cs, 1.7 * cs, 0, 6.283); ctx.fill();   // rucksack
+      ctx.fillStyle = shade(SKIN); ctx.beginPath(); ctx.arc(x + f * 1.7 * cs, y - 10.6 * cs, 1.6 * cs, 0, 6.283); ctx.fill();
+    });
+  }
+}
+
 function draw(t, time, P) {
   drawSky(P, t, time);
   const dark = mix(P.near, P.ink, .4);
@@ -1065,6 +1295,7 @@ function draw(t, time, P) {
     if (L.cap) { ctx.fillStyle = css(P.snow, .94); ctx.fill(L.cap); }
 
     const inkC = mix(col, P.ink, .74), ink = css(inkC, .9), pale = mix(col, P.haze, .7);
+    if (L.streamY) drawStream(L, P);
     if (L.i === 2) drawWaterfall(P, time, col);
     if (L.riverY) drawRiver(L, P, time, inkC);
     ctx.fillStyle = css(inkC, .34); ctx.fill(L.echo[0]);
@@ -1087,12 +1318,14 @@ function draw(t, time, P) {
         case 'block': drawBlock(o, L, shade, ink, P, time); break;
         case 'person': drawPerson(o, L, shade, ink, P, time); break;
         case 'bridge': drawBridge(o, L, shade, ink); break;
+        case 'bike': drawBike(o, L, shade, ink, P); break;
         case 'stupa': drawStupa(o, L, shade, ink); break;
         case 'lamp': drawLamp(o, L, ink, P); break;
         case 'flags': drawFlags(o, L, shade, ink, time); break;
         default: drawTree(o, L, shade, ink, P, time);
       }
     }
+    drawFolk(L, P, shade, ink);
   }
   drawSnow(P);
   drawRain(P);
@@ -1107,17 +1340,18 @@ function draw(t, time, P) {
 // each; travellers keep to the road.
 function step(dt) {
   for (const L of layers) for (const p of L.people) {
+    const rush = 1 + (p.runner ? 2.2 : .3) * wet;          // caught without an umbrella: run for it
     if (!p.doors) {
-      p.x += p.dir * p.speed * dt;
+      p.x += p.dir * p.speed * rush * dt;
       const m = 12 * L.s;
       if (p.x > W + m) p.x = -m; else if (p.x < -m) p.x = W + m;
     } else if (p.wait > 0) {
-      p.wait -= dt; p.moving = false;
+      p.wait -= dt * (1 + 2 * wet); p.moving = false;      // nobody lingers in the rain
       if (p.wait <= 0) p.tx = p.doors[(Math.random() * p.doors.length) | 0];
     } else {
       const dx = p.tx - p.x;
       if (Math.abs(dx) < 1) p.wait = 1.5 + Math.random() * 5;
-      else { p.dir = Math.sign(dx); p.moving = true; p.x += p.dir * Math.min(Math.abs(dx), p.speed * dt); }
+      else { p.dir = Math.sign(dx); p.moving = true; p.x += p.dir * Math.min(Math.abs(dx), p.speed * rush * dt); }
     }
   }
 }
@@ -1176,6 +1410,8 @@ function frame(now) {
   stepWeather(dt, time);
   applySeason(P);
   step(dt);
+  stepSky(dt, P);
+  stepFolk(dt);
   stepFireworks(dt, P.night);
   draw(t, time, P);
   const label = String(t | 0).padStart(2, '0') + ':' + String((t % 1) * 60 | 0).padStart(2, '0');
