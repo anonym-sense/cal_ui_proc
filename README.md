@@ -28,6 +28,14 @@ one self-contained file. No libraries, no build step, no assets: open
   sun and moon, stars, lit windows and lanterns all follow the hour.
 - **Seasons**: spring blossom, summer green, autumn colour, bare winter
   branches, and a snowline that moves with the season.
+- **Water**: a waterfall drops from a bluff and feeds a river that cascades over
+  every nearer ridge and runs under a footbridge on the road. The flow follows the
+  season (spring snowmelt, a summer trickle, frozen in winter) and runs at its
+  fullest in rain.
+- **Rain days**: decided once per calendar day, likeliest in summer; rain
+  greys the sky and swells the river.
+- **Dogs** trot behind some of the walkers, and lamp posts line the lanes,
+  the road and the bridge.
 - **Snow, Christmas lights and night fireworks**, each optional.
 
 ## Controls
@@ -38,6 +46,7 @@ one self-contained file. No libraries, no build step, no assets: open
 | Live | `L` | Follow the real clock again |
 | Day cycle | `C` | Play a whole day in one minute |
 | Season | `S` | Cycle auto / spring / summer / autumn / winter (auto follows the calendar) |
+| Rain | `W` | Rain; the waterfall and river rise to full flood, then drop back slowly |
 | Snow | `N` | Snowfall; the landscape whitens as it settles and melts when turned off |
 | Christmas lights | `X` | Coloured bulbs on eaves and conifers (on by default in December) |
 | Night fireworks | `F` | Fireworks over the town once it is dark |
@@ -51,14 +60,18 @@ URL parameters pin a scene, for example
 | `seed` | integer; the same seed gives the same landscape |
 | `t` | hour of day, `0`–`24` |
 | `season` | `spring`, `summer`, `autumn`, `winter` |
+| `rain` | `1` or `0` |
 | `snow` | `1` or `0` |
+| `ui` | `0` hides the control panel |
 | `xmas` | `1` or `0` |
 
 ## Status
 
 - Rendered and checked in headless Microsoft Edge at 1400×800 in summer,
-  autumn and winter, by day and by night. Other browsers and phone-sized
-  screens have not been tested.
+  autumn and winter, by day and by night, with and without rain, and at phone
+  sizes (500×900 portrait, 844×400 landscape). On narrow or touch screens the
+  controls collapse to a one-line bar with a Controls button. Other browsers and real phones
+  have not been tested.
 - Sunrise and sunset are fixed at 06:00 and 18:00; they are not computed from
   a location or date.
 - Seasons follow northern-hemisphere months.
