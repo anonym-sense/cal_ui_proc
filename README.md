@@ -1,63 +1,74 @@
-# Calligraphy Mountains
+# Calligraphy City
 
-**A tiny mountain town that never stops living, inked in one HTML file.**
+**A street that runs to the mountains, inked in one HTML file. Until you break it.**
 
-Every ridge is a pen stroke, every window lights up at dusk, and no two
-landscapes are the same. It keeps your local time, changes with the seasons,
-and gets on with its day whether you are watching or not.
+> **You are on the `city` branch.** This is an experiment built on top of
+> [Calligraphy Mountains](https://github.com/anonym-sense/cal_ui_proc/tree/main),
+> which lives on `main` and is what the
+> [hosted page](https://anonym-sense.github.io/cal_ui_proc/) shows. The city is
+> not hosted yet: check out this branch and open `index.html` in a browser.
+>
+> ```
+> git clone -b city https://github.com/anonym-sense/cal_ui_proc.git
+> ```
 
-### [▶ Watch it live](https://anonym-sense.github.io/cal_ui_proc/)
+![The street on a summer morning](docs/day.png)
 
-![A full day passing over the town in autumn](docs/day-cycle.gif)
+## What awaits on this branch
 
-| Monsoon afternoon | Christmas night |
+The hill town is gone. In its place is a city street drawn in one-point
+perspective: the road is the `/\` of the picture, running from the bottom of
+the screen to a vanishing point under a snow range, with buildings down both
+sides that are large in front and shrink with distance.
+
+It keeps everything the mountains did (the real clock, seasons, rain, snow,
+Christmas lights, fireworks, the same little people) and adds one new button.
+
+| Christmas night | Distort |
 | --- | --- |
-| [![Rain over the town in summer](docs/rain.gif)](https://anonym-sense.github.io/cal_ui_proc/?seed=77&season=summer&rain=1&t=15.5) | [![Snow, fireworks and Santa on a winter night](docs/winter-night.gif)](https://anonym-sense.github.io/cal_ui_proc/?seed=77&season=winter&snow=1&xmas=1&t=21.5) |
+| ![Garlands, the great tree and lit windows on a snowy night](docs/christmas-night.png) | ![The pane cracked and a black hole opening over the street](docs/distort.png) |
 
-Click either scene to open it live. Full-size stills:
-[autumn afternoon](docs/autumn.png), [winter night](docs/winter-night.png).
+### The street
 
-A procedurally generated hill-station landscape drawn on an HTML canvas, in
-one self-contained file. No libraries, no build step, no assets: open
-`index.html` in a browser, or use the
-[hosted page](https://anonym-sense.github.io/cal_ui_proc/).
+- **Buildings** on both sides, each with a long wall receding along the street
+  and an end wall facing you; shop fronts under striped awnings at ground
+  level, and a few taller towers further on.
+- **The two kerbs** are the heavy broad-nib strokes, thinning toward the
+  vanishing point.
+- **People** on the pavements: townsfolk walk from door to door and pause at
+  each, travellers walk the length of the street. Dogs, lanterns after dark,
+  umbrellas in rain, and a dash for those caught without one.
+- **Traffic** in two lanes: one comes toward you with headlights, one drives
+  away with tail lights, and there is a bus.
+- **The snow range** stands at the end of the street, drawn with the same
+  calligraphy ridgelines as the original, with a snowline that moves with the
+  season.
+- **Time of day, seasons, rain and snow** work as on `main`: lit windows and
+  street lamps at dusk, bare branches in winter, snow settling on roofs,
+  awnings, car roofs and the road.
+- **Christmas**: garlands with a gold star strung across the street between
+  lamp posts, bulbs above the shop fronts, wreaths over doors, a great lit
+  tree on an island in the road, cars carrying trees home, snowmen when the
+  snow lies deep, and Santa on snowy nights.
 
-## What it draws
+### Distort
 
-- **Mountains** from layered 1D gradient noise: ridged multifractal noise for
-  the craggy far peaks, smooth fBm for the rolling near hills.
-- **Calligraphy ridgelines**: each ridge is a broad-nib pen stroke (a pen edge
-  held at a fixed angle and swept along the path), so the line swells on
-  up-slopes and thins on down-slopes, with dry-brush gaps. Two fainter echoes
-  of the ridge repeat lower on each slope.
-- **A ridge town and hamlets** in the style of a Himalayan hill station
-  (Darjeeling was the reference): cottages with coloured walls and painted tin
-  roofs, placed only where the ground is gentle, with street lamps, prayer
-  flags, small shrines and tea gardens following the contour.
-- **Forest**: pines and cedars on the high and steep ground, aspen groves on
-  the easy slopes, broadleaf trees lower down, bare ground above the treeline.
-- **People**: townsfolk walk from door to door along their own lane and pause
-  at each; travellers keep to the road across the foreground.
-- **Time of day** from the real clock: sky, mountain, ink and haze colours,
-  sun and moon, stars, lit windows and lanterns all follow the hour.
-- **Seasons**: spring blossom, summer green, autumn colour, bare winter
-  branches, and a snowline that moves with the season.
-- **Water**: a stream gathers in a high valley, reaches a notch between two
-  shoulders and drops as a waterfall, feeding a river that cascades over
-  every nearer ridge and runs under a footbridge on the road. The flow follows the
-  season (spring snowmelt, a summer trickle, frozen in winter) and runs at its
-  fullest in rain.
-- **Rain days**: decided once per calendar day, likeliest in summer; rain
-  brings heavy cloud, umbrellas for most walkers and a dash for those without;
-  it also
-  greys the sky and swells the river.
-- **Dogs** trot behind some of the walkers, cyclists ride the road, and lamp
-  posts line the lanes,
-  the road and the bridge.
-- **On the mountains**: roped teams climb to the summits and plant a flag.
-- **In the sky**: shooting stars on clear summer nights when the fireworks are
-  off, and Santa on snowy nights when the Christmas lights are on.
-- **Snow, Christmas lights and night fireworks**, each optional.
+Press **Distort** (or `D`):
+
+1. The page flashes and shakes, and cracks spread from the middle of the pane.
+2. The pane splits into shards that ease apart, the street still alive on them.
+3. A black hole opens near the vanishing point and slowly grows.
+4. People, cars and Santa are pulled in first, then lamps and trees, then the
+   buildings, then the shards themselves, each on a tightening spiral.
+5. After about sixteen seconds only the black hole is left.
+
+![The black hole that remains](docs/black-hole.png)
+
+The black hole is generated in code: a rotating accretion disk that is hotter
+and faster toward the middle and brighter on its approaching side, the far
+side of the disk bent into a halo round the shadow, a photon ring, and a
+starfield pushed outward round it. The button then reads **Restore**, which
+closes the hole and brings the street back.
 
 ## Controls
 
@@ -67,35 +78,38 @@ one self-contained file. No libraries, no build step, no assets: open
 | Live | `L` | Follow the real clock again |
 | Day cycle | `C` | Play a whole day in one minute |
 | Season | `S` | Cycle auto / spring / summer / autumn / winter (auto follows the calendar) |
-| Rain | `W` | Rain; the waterfall and river rise to full flood, then drop back slowly |
-| Snow | `N` | Snowfall; the landscape whitens as it settles and melts when turned off |
-| Christmas lights | `X` | Coloured bulbs on eaves and conifers (on by default in December) |
-| Night fireworks | `F` | Fireworks over the town once it is dark |
-| New landscape | `R` | Generate a new scene |
+| Rain | `W` | Rain; umbrellas go up along the pavements |
+| Snow | `N` | Snowfall; the street whitens as it settles and melts when turned off |
+| Christmas lights | `X` | Garlands, bulbs, wreaths and the great tree (on by default in December) |
+| Night fireworks | `F` | Fireworks from the far end of the street once it is dark |
+| New city | `R` | Generate a new street |
+| Distort / Restore | `D` | Break the glass and let the black hole take the scene, or bring it back |
 
 URL parameters pin a scene, for example
-[`?seed=77&t=21.5&season=winter&xmas=1`](https://anonym-sense.github.io/cal_ui_proc/?seed=77&t=21.5&season=winter&xmas=1):
+`index.html?seed=77&t=21.5&season=winter&snow=1&xmas=1`:
 
 | Parameter | Values |
 | --- | --- |
-| `seed` | integer; the same seed gives the same landscape |
+| `seed` | integer; the same seed gives the same street |
 | `t` | hour of day, `0`–`24` |
 | `season` | `spring`, `summer`, `autumn`, `winter` |
 | `rain` | `1` or `0` |
 | `snow` | `1` or `0` |
-| `ui` | `0` hides the control panel |
 | `xmas` | `1` or `0` |
+| `ui` | `0` hides the control panel |
+| `dz` | seconds; opens part-way through the distortion (`dz=20` is the black hole alone) |
 
 ## Status
 
-- Rendered and checked in headless Microsoft Edge at 1400×800 in summer,
-  autumn and winter, by day and by night, with and without rain, and at phone
-  sizes (500×900 portrait, 844×400 landscape). On narrow or touch screens the
-  controls collapse to a one-line bar with a Controls button. Other browsers and real phones
-  have not been tested.
-- Sunrise and sunset are fixed at 06:00 and 18:00; they are not computed from
-  a location or date.
-- Seasons follow northern-hemisphere months.
+- Checked only as still screenshots in headless Microsoft Edge, at 1400×800
+  and 500×900, by day and night, in rain and snow, and at several points in
+  the distortion. The animation has not been reviewed running, and frame rate
+  has not been measured.
+- Buildings torn loose during Distort fly in as fairly plain blocks: their end
+  walls have no windows where a nearer building used to hide them.
+- The cyclists and the mountain climbers from `main` are not in the city.
+- Sunrise and sunset are fixed at 06:00 and 18:00, and seasons follow
+  northern-hemisphere months, as on `main`.
 - There are no automated tests.
 
 ## License
