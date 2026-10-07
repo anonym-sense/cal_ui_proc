@@ -1,12 +1,26 @@
 # Calligraphy Mountains
 
+**A tiny mountain town that never stops living, inked in one HTML file.**
+
+Every ridge is a pen stroke, every window lights up at dusk, and no two
+landscapes are the same. It keeps your local time, changes with the seasons,
+and gets on with its day whether you are watching or not.
+
+### [▶ Watch it live](https://anonym-sense.github.io/cal_ui_proc/)
+
+![A full day passing over the town in autumn](docs/day-cycle.gif)
+
+| Monsoon afternoon | Christmas night |
+| --- | --- |
+| [![Rain over the town in summer](docs/rain.gif)](https://anonym-sense.github.io/cal_ui_proc/?seed=77&season=summer&rain=1&t=15.5) | [![Snow, fireworks and Santa on a winter night](docs/winter-night.gif)](https://anonym-sense.github.io/cal_ui_proc/?seed=77&season=winter&snow=1&xmas=1&t=21.5) |
+
+Click either scene to open it live. Full-size stills:
+[autumn afternoon](docs/autumn.png), [winter night](docs/winter-night.png).
+
 A procedurally generated hill-station landscape drawn on an HTML canvas, in
 one self-contained file. No libraries, no build step, no assets: open
-`index.html` in a browser.
-
-![Autumn afternoon](docs/autumn.png)
-
-![Winter night with Christmas lights](docs/winter-night.png)
+`index.html` in a browser, or use the
+[hosted page](https://anonym-sense.github.io/cal_ui_proc/).
 
 ## What it draws
 
@@ -60,7 +74,7 @@ one self-contained file. No libraries, no build step, no assets: open
 | New landscape | `R` | Generate a new scene |
 
 URL parameters pin a scene, for example
-`index.html?seed=77&t=21.5&season=winter&xmas=1`:
+[`?seed=77&t=21.5&season=winter&xmas=1`](https://anonym-sense.github.io/cal_ui_proc/?seed=77&t=21.5&season=winter&xmas=1):
 
 | Parameter | Values |
 | --- | --- |
